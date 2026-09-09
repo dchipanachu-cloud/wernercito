@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Interactivo Eléctrico</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Contenedores de Pantalla */
+        .screen {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .active {
+            display: block;
+        }
+
+        h1 {
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+
+        /* Botones del menú principal */
+        .btn-level {
+            display: block;
+            width: 250px;
+            margin: 15px auto;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-level:hover {
+            background-color: #003d82;
+            transform: translateY(-2px);
+        }
+
+        /* Tablero de Juego */
+        .game-board {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 20px;
+        }
+
+        .images-container, .names-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            min-height: 450px;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        /* Cartas arrastrables (Imágenes) */
+        .draggable {
+            width: 120px;
+            height: 120px;
+            background-color: #fff;
+            border: 2px solid #0056b3;
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .draggable:active {
+            cursor: grabbing;
+        }
+        .draggable img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* Zonas donde soltar (Nombres) */
+        .dropzone-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .dropzone-label {
+            flex: 1;
+            text-align: left;
+            font-weight: bold;
+            font-size: 14px;
+            padding-right: 10px;
+        }
+        .dropzone {
+            width: 124px;
+            height: 124px;
+            background: #f8f9fa;
+            border: 2px dashed #0056b3;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .dropzone.hovered {
+            background-color: #d0e1fd;
+        }
+
+        /* Botones de acción */
+        .actions {
+            margin-top: 30px;
+        }
+        .btn-action {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-check {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-check:hover { background-color: #218838; }
+        
+        .btn-back {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-back:hover { background-color: #c82333; }
+
+        /* Modal / Cuadro de Resultado */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+        .modal-content.correct h2 { color: #28a745; }
+        .modal-content.incorrect h2 { color: #dc3545; }
+        .modal-btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
+            border: none;
+            background-color: #0056b3;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Inicio -->
+    <div id="home-screen" class="screen active">
+        <h1>Juego Interactivo Eléctrico</h1>
+        <p>Selecciona un nivel para comenzar</p>
+        <button class="btn-level" onclick="loadLevel(1)">Nivel 1</button>
+        <button class="btn-level" onclick="loadLevel(2)">Nivel 2</button>
+        <button class="btn-level" onclick="loadLevel(3)">Nivel 3</button>
+    </div>
+
+    <!-- Pantalla del Juego -->
+    <div id="game-screen" class="screen">
+        <h1 id="level-title">Título del Nivel</h1>
+        <p>Arrastra las imágenes de la izquierda hacia su nombre correspondiente en la derecha.</p>
+        
+        <div class="game-board">
+            <div id="images-container" class="images-container">
+                <h3>Imágenes</h3>
+            </div>
+            <div id="names-container" class="names-container">
+                <h3>Nombres</h3>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-action btn-check" onclick="checkAnswers()">Comprobar</button>
+            <button class="btn-action btn-back" onclick="goHome()">Regresar</button>
+        </div>
+    </div>
+
+    <!-- Cuadro de Diálogo Modal (Correcto / Incorrecto) -->
+    <div id="result-modal" class="modal">
+        <div id="modal-box" class="modal-content">
+            <h2 id="modal-title">Resultado</h2>
+            <p id="modal-msg">Mensaje</p>
+            <button class="modal-btn" onclick="closeModal()">Aceptar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de los Niveles
+        const levelData = {
+            1: {
+                title: "ELEMENTOS DE PROTECCIÓN",
+                items: [
+                    { id: "1_1", name: "Tierra de Protección", img: "images/image_0.png" },
+                    { id: "1_2", name: "Equipotencialidad", img: "images/image_1.png" },
+                    { id: "1_3", name: "Fusible", img: "images/image_2.png" },
+                    { id: "1_4", name: "Interruptor de navajas o cuchillas con fusible bifásico", img: "images/image_3.png" },
+                    { id: "1_5", name: "Interruptor seccionador", img: "images/image_4.png" }
+                ]
+            },
+            2: {
+                title: "CONTACTOS DE POTENCIA Y CONTROL",
+                items: [
+                    { id: "2_1", name: "Contactor trifásico", img: "images/image_5.png" },
+                    { id: "2_2", name: "Contacto N.A", img: "images/image_6.png" },
+                    { id: "2_3", name: "Contacto N.C", img: "images/image_7.png" },
+                    { id: "2_4", name: "Contacto temporizado al accionamiento", img: "images/image_8.png" },
+                    { id: "2_5", name: "Contactos temporizado al desaccionamiento", img: "images/image_9.png" }
+                ]
+            },
+            3: {
+                title: "INTERRUPTORES",
+                items: [
+                    { id: "3_1", name: "Botón pulsador normalmente abierto", img: "images/image_10.png" },
+                    { id: "3_2", name: "Interruptor de parada de emergencia", img: "images/image_11.png" },
+                    { id: "3_3", name: "Interruptor de pedal normalmente abierto", img: "images/image_12.png" },
+                    { id: "3_4", name: "Interruptor de pedal normalmente cerrado", img: "images/image_13.png" },
+                    { id: "3_5", name: "Interruptor de botón rotatorio normalmente abierto", img: "images/image_14.png" }
+                ]
+            }
+        };
+
+        let currentLevelItems = [];
+
+        function loadLevel(level) {
+            document.getElementById('home-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+
+            const data = levelData[level];
+            document.getElementById('level-title').innerText = "NIVEL " + level + ": " + data.title;
+            
+            currentLevelItems = data.items;
+
+            const imagesContainer = document.getElementById('images-container');
+            const namesContainer = document.getElementById('names-container');
+            
+            imagesContainer.innerHTML = '<h3>Imágenes</h3>';
+            namesContainer.innerHTML = '<h3>Nombres</h3>';
+
+            // Mezclar imágenes al azar
+            let shuffledItems = [...data.items].sort(() => Math.random() - 0.5);
+
+            shuffledItems.forEach(item => {
+                const dragDiv = document.createElement('div');
+                dragDiv.classList.add('draggable');
+                dragDiv.setAttribute('draggable', 'true');
+                dragDiv.setAttribute('id', 'drag_' + item.id);
+                dragDiv.setAttribute('data-id', item.id);
+                
+                dragDiv.innerHTML = `<img src="${item.img}" alt="Imagen">`;
+                dragDiv.addEventListener('dragstart', dragStart);
+                imagesContainer.appendChild(dragDiv);
+            });
+
+            data.items.forEach(item => {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('dropzone-wrapper');
+
+                const label = document.createElement('div');
+                label.classList.add('dropzone-label');
+                label.innerText = item.name;
+
+                const dropDiv = document.createElement('div');
+                dropDiv.classList.add('dropzone');
+                dropDiv.setAttribute('data-expected', item.id);
+
+                dropDiv.addEventListener('dragover', dragOver);
+                dropDiv.addEventListener('dragenter', dragEnter);
+                dropDiv.addEventListener('dragleave', dragLeave);
+                dropDiv.addEventListener('drop', drop);
+
+                wrapper.appendChild(label);
+                wrapper.appendChild(dropDiv);
+                namesContainer.appendChild(wrapper);
+            });
+
+            imagesContainer.addEventListener('dragover', dragOver);
+            imagesContainer.addEventListener('drop', dropBack);
+        }
+
+        function goHome() {
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        /* --- Lógica Drag & Drop --- */
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.id);
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function dragEnter(e) {
+            if (e.target.classList.contains('dropzone')) {
+                e.target.classList.add('hovered');
+            }
+        }
+
+        function dragLeave(e) {
+            if (e.target.classList.contains('dropzone')) {
+                e.target.classList.remove('hovered');
+            }
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('dropzone')) {
+                e.target.classList.remove('hovered');
+                const draggableId = e.dataTransfer.getData('text/plain');
+                const draggableElement = document.getElementById(draggableId);
+                
+                if (e.target.children.length === 0) {
+                    e.target.appendChild(draggableElement);
+                }
+            }
+        }
+
+        function dropBack(e) {
+            e.preventDefault();
+            const draggableId = e.dataTransfer.getData('text/plain');
+            const draggableElement = document.getElementById(draggableId);
+            
+            if (e.currentTarget.id === 'images-container') {
+                e.currentTarget.appendChild(draggableElement);
+            }
+        }
+
+        /* --- Verificación de Respuestas --- */
+        function checkAnswers() {
+            const dropzones = document.querySelectorAll('.dropzone');
+            let allCorrect = true;
+            let totalPlaced = 0;
+
+            dropzones.forEach(zone => {
+                const expectedId = zone.getAttribute('data-expected');
+                
+                if (zone.children.length > 0) {
+                    totalPlaced++;
+                    const placedId = zone.children[0].getAttribute('data-id');
+                    
+                    if (expectedId !== placedId) {
+                        allCorrect = false;
+                    }
+                } else {
+                    allCorrect = false;
+                }
+            });
+
+            if (totalPlaced < currentLevelItems.length) {
+                showModal("Incompleto", "Por favor, coloca todas las imágenes en sus casilleros antes de comprobar.", false);
+                return;
+            }
+
+            if (allCorrect) {
+                showModal("¡CORRECTO!", "¡Excelente trabajo! Todas las imágenes coinciden con su nombre.", true);
+            } else {
+                showModal("INCORRECTO", "Algunas imágenes están en el lugar equivocado. Vuelve a intentarlo.", false);
+            }
+        }
+
+        /* --- Mostrar Modal --- */
+        function showModal(title, message, isSuccess) {
+            const modal = document.getElementById('result-modal');
+            const box = document.getElementById('modal-box');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = message;
+
+            box.className = 'modal-content ' + (isSuccess ? 'correct' : 'incorrect');
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
